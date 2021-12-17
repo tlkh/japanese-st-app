@@ -1,0 +1,9 @@
+spacy==3.*
+streamlit
+transformers
+tokenizers
+sentencepiece
+https://github.com/explosion/spacy-models/releases/download/ja_core_news_sm-3.2.0/ja_core_news_sm-3.2.0.tar.gz#egg=ja_core_news_sm
+https://github.com/explosion/spacy-models/releases/download/en_core_web_sm-3.2.0/en_core_web_sm-3.2.0.tar.gz#egg= en_core_web_sm
+torch
+pykakasi
