@@ -7,7 +7,9 @@ WORKDIR /app
 
 RUN python3 -m pip install --no-cache-dir torch==1.10.1+cpu -f https://download.pytorch.org/whl/cpu/torch_stable.html && \
     python3 -m pip --no-cache-dir install \
-        onnxruntime transformers tokenizers sentencepiece flask flask_cors 
+        transformers tokenizers sentencepiece flask flask_cors 
+
+RUN python3 -c 'import transformers;transformers.MBartForConditionalGeneration.from_pretrained("facebook/mbart-large-50-many-to-many-mmt")'
 
 COPY . /app
 

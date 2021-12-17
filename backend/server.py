@@ -32,7 +32,7 @@ def translate(in_text, src="en_XX", tgt="ja_XX"):
         translation = translation.strip()
     else:
         translation = ""
-    return 
+    return translation
 
 
 @app.route("/predict", methods=["GET", "POST"])
@@ -55,4 +55,7 @@ def predict():
 
 if __name__ == "__main__":
     print("Starting Flask server")
-    app.run(host="0.0.0.0", port=5000)
+    try:
+        app.run(host="0.0.0.0", port=5000)
+    except:
+        pass
