@@ -1,20 +1,10 @@
 from typing import DefaultDict
 import streamlit as st
-import torch
-from transformers import MBartForConditionalGeneration, MBart50Tokenizer
 import spacy
 import pykakasi
+import requests
 
-
-@st.cache(allow_output_mutation=True, suppress_st_warning=True)
-def load_translation_model():
-    with st.spinner("Loading translation model..."):
-        model_name = "facebook/mbart-large-50-many-to-many-mmt"
-        model = MBartForConditionalGeneration.from_pretrained(model_name)
-        model = model.eval()
-        tokenizer = MBart50Tokenizer.from_pretrained(model_name)
-    st.success("Done!")
-    return tokenizer, model
+ENDPOINT = "https://translate-34x4ouuclq-as.a.run.app/predict"
 
 
 @st.cache(allow_output_mutation=True, suppress_st_warning=True)
@@ -26,29 +16,35 @@ def load_jp_nlp():
     return jp_nlp, kks
 
 
-def translate_en_to_jp(in_text, tokenizer, model):
+@st.cache
+def make_api_query(src, tgt, text, endpoint):
+    query_json = {
+        "src": str(src).strip(),
+        "tgt": str(tgt).strip(),
+        "text": str(text).strip(),
+    }
+    response = requests.post(endpoint, json=query_json).json()
+    return response
+
+
+def translate_en_to_jp(in_text):
     if len(in_text) > 0:
-        tokenizer.src_lang = "en_XX"
-        encoded = tokenizer(in_text, return_tensors="pt")
-        with torch.no_grad():
-            generated = model.generate(**encoded,
-                                       forced_bos_token_id=tokenizer.lang_code_to_id["ja_XX"])
-        translation = tokenizer.batch_decode(
-            generated, skip_special_tokens=True)[0]
+        src = "en_XX"
+        tgt = "ja_XX"
+        translation = make_api_query(src, tgt, in_text, ENDPOINT)[
+            "translation"]
         translation = translation.strip()
     else:
         translation = ""
     return translation
 
-def translate_jp_to_en(in_text, tokenizer, model):
+
+def translate_jp_to_en(in_text):
     if len(in_text) > 0:
-        tokenizer.src_lang = "ja_XX"
-        encoded = tokenizer(in_text, return_tensors="pt")
-        with torch.no_grad():
-            generated = model.generate(**encoded,
-                                       forced_bos_token_id=tokenizer.lang_code_to_id["en_XX"])
-        translation = tokenizer.batch_decode(
-            generated, skip_special_tokens=True)[0]
+        src = "ja_XX"
+        tgt = "en_XX"
+        translation = make_api_query(src, tgt, in_text, ENDPOINT)[
+            "translation"]
         translation = translation.strip()
     else:
         translation = ""
@@ -56,13 +52,12 @@ def translate_jp_to_en(in_text, tokenizer, model):
 
 
 def main():
-    tokenizer, model = load_translation_model()
     jp_nlp, kks = load_jp_nlp()
     direction = st.selectbox(label="Direction", options=[
                              "EN to JP", "JP to EN"])
     in_text = st.text_input(label="Input", value="").strip()
     if direction == "EN to JP":
-        translation = translate_en_to_jp(in_text, tokenizer, model)
+        translation = translate_en_to_jp(in_text)
         result = kks.convert(translation)
         text_furigana = []
         for item in result:
@@ -85,7 +80,7 @@ def main():
             st.markdown(entity_breakdown)
     else:
         # JP to EN
-        translation = translate_jp_to_en(in_text, tokenizer, model)
+        translation = translate_jp_to_en(in_text)
         st.markdown(translation)
         result = kks.convert(in_text)
         text_furigana = []
@@ -100,7 +95,6 @@ def main():
             entity_breakdown = ["|Word|POS|Hiragana|Romaji|", "|-|-|-|-|"]
             for token in doc:
                 text = token.text
-                meaning = ""
                 item = kks.convert(text)[0]
                 spam = "|"+item['orig']+"|"+token.pos_ + \
                     "|"+item['hira']+"|"+item['hepburn']+"|"
